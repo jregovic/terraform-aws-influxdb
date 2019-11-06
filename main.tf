@@ -4,7 +4,6 @@ data "aws_subnet" "selected" {
   id = "${var.subnet_ids[count.index]}"
 }
 
-r
 # Create data nodes, equally distrubting them across specified subnets / AVs
 resource "aws_instance" "data_node" {
     ami                         = "${var.ami}"
