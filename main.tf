@@ -4,6 +4,10 @@ data "aws_subnet" "selected" {
   id = "${var.subnet_ids[count.index]}"
 }
 
+resource "aws_instance_profile" "role" {
+    iam_instance_profile = "${var.node_iam_role}"
+}
+
 # Create data nodes, equally distrubting them across specified subnets / AVs
 resource "aws_instance" "data_node" {
     ami                         = "${var.ami}"
@@ -153,3 +157,4 @@ resource "aws_security_group" "data_node" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 }
+

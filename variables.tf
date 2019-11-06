@@ -90,3 +90,7 @@ variable "meta_disk_device_name" {
     description = "The name of the device to attach to the meta-nodes"
     default  = "/dev/xvdh"
 }
+variable "node_iam_role" {
+    description = "The IAM role for the nodes to use"
+    default = ""
+}
