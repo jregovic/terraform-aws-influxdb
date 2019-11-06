@@ -50,6 +50,19 @@ variable "data_disk_iops" {
     default = 4000
 }
 
+variable "wal_disk_size" {
+    description = "The size of the data disks to provision, for data nodes only"
+    default = 100
+}
+
+variable "wal_disk_iops" {
+    description = "The number of IOPs for the io1 type volume"
+    default = 3000
+}
+variable "hh_disk_size" {
+    description = "The size of the data disks to provision, for data nodes only"
+    default = 100
+}
 variable "security_groups" {
     type        = "list"
     description = "Extra security groups to apply to all hosts, useful for bastion host access"
