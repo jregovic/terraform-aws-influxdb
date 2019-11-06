@@ -11,7 +11,7 @@ resource "aws_instance" "data_node" {
     tags                        = "${merge(var.tags, map("Name", "${var.name}-data${format("%02d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_data"), map("Type", "data"))}"
     subnet_id                   = "${element(var.subnet_ids, count.index)}"
     key_name                    = "${var.key_name}"
-    user_data                   = "${var.user_data == "" ? file("${path.module}/files/init.sh") : var.user_data }"
+    user_data                   = "${data.template_file.bootstrap-data.rendered}"
     ebs_optimized               = true
     vpc_security_group_ids      = ["${concat(list(aws_security_group.influx_cluster.id, aws_security_group.data_node.id), var.security_groups)}"]
     count                       = "${var.data_instances}"
@@ -23,7 +23,7 @@ resource "aws_ebs_volume" "data" {
     type              = "io1"
     iops              = "${var.data_disk_iops}"
     availability_zone = "${element(data.aws_subnet.selected.*.availability_zone, count.index)}"
-    tags              = "${var.tags}"
+    tags              = "${merge(var.tags, map("volume", "data"))}"
     count             = "${var.data_instances}"
 }
 
@@ -34,8 +34,38 @@ resource "aws_volume_attachment" "data_attachment" {
     count       = "${var.data_instances}"
     force_detach = true
 }
+resource "aws_ebs_volume" "wal" {
+    size              = "${var.wal_disk_size}"
+    encrypted         = true
+    type              = "io1"
+    iops              = "${var.wal_disk_iops}"
+    availability_zone = "${element(data.aws_subnet.selected.*.availability_zone, count.index)}"
+    tags              = "${merge(var.tags, map("volume", "wal"))}"
+    count             = "${var.data_instances}"
+}
+resource "aws_volume_attachment" "wal_attachment" {
+    device_name = "${var.wal_disk_device_name}"
+    volume_id   = "${aws_ebs_volume.wal.*.id[count.index]}"
+    instance_id = "${aws_instance.data_node.*.id[count.index]}"
+    count       = "${var.data_instances}"
+    force_detach = true
+}
 
-
+resource "aws_ebs_volume" "hh" {
+    size              = "${var.hh_disk_size}"
+    encrypted         = true
+    type              = "gp2"
+    availability_zone = "${element(data.aws_subnet.selected.*.availability_zone, count.index)}"
+    tags              = "${merge(var.tags, map("volume", "hh"))}"
+    count             = "${var.data_instances}"
+}
+resource "aws_volume_attachment" "hh_attachment" {
+    device_name = "${var.hh_disk_device_name}"
+    volume_id   = "${aws_ebs_volume.hh.*.id[count.index]}"
+    instance_id = "${aws_instance.data_node.*.id[count.index]}"
+    count       = "${var.data_instances}"
+    force_detach = true
+}
 # Creates all meta nodes in the first / same subnet, this avoids splits if one AV goes offline.
 # Data nodes function fine without access to meta-nodes between shard creation.
 resource "aws_instance" "meta_node" {
@@ -44,7 +74,7 @@ resource "aws_instance" "meta_node" {
     tags                        = "${merge(var.tags, map("Name", "${var.name}-meta${format("%02d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_meta"), map("Type", "data"))}"
     subnet_id                   = "${element(var.subnet_ids,0)}"
     key_name                    = "${var.key_name}"
-    user_data                   = "${var.user_data == "" ? file("${path.module}/files/init.sh") : var.user_data }"
+    user_data                   = "${data.template_file.bootstrap-meta.rendered}"
     vpc_security_group_ids      = ["${concat(list(aws_security_group.influx_cluster.id), var.security_groups)}"]
     count                       = "${var.meta_instances}"
 }
@@ -52,10 +82,9 @@ resource "aws_instance" "meta_node" {
 resource "aws_ebs_volume" "meta" {
     size              = "100"
     encrypted         = true
-    type              = "io1"
-    iops              = "4000"
+    type              = "gp2"
     availability_zone = "${data.aws_subnet.selected.0.availability_zone}"
-    tags              = "${var.tags}"
+    tags              = "${merge(var.tags, map("volume", "meta"))}"
     count             = "${var.meta_instances}"
 }
 
