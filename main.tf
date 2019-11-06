@@ -4,10 +4,13 @@ data "aws_subnet" "selected" {
   id = "${var.subnet_ids[count.index]}"
 }
 
-resource "aws_instance_profile" "role" {
-    iam_instance_profile = "${var.node_iam_role}"
+resource "aws_iam_instance_profile" "influx_profile" {
+  name = "influx_profile"
+  role = "${aws_iam_role.role.name}"
 }
-
+resource "aws_iam_role" "role" {
+    role = "${var.node_iam_role}"
+}
 # Create data nodes, equally distrubting them across specified subnets / AVs
 resource "aws_instance" "data_node" {
     ami                         = "${var.ami}"
