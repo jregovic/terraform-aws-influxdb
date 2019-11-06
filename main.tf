@@ -4,17 +4,12 @@ data "aws_subnet" "selected" {
   id = "${var.subnet_ids[count.index]}"
 }
 
-resource "aws_iam_instance_profile" "influx_profile" {
-  name = "influx_profile"
-  role = "${aws_iam_role.role.name}"
-}
-resource "aws_iam_role" "role" {
-    role = "${var.node_iam_role}"
-}
+r
 # Create data nodes, equally distrubting them across specified subnets / AVs
 resource "aws_instance" "data_node" {
     ami                         = "${var.ami}"
     instance_type               = "${var.instance_type}"
+    iam_instance_profile        = "${var.node_iam_role}"
     tags                        = "${merge(var.tags, map("Name", "${var.name}-data${format("%02d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_data"), map("Type", "data"))}"
     subnet_id                   = "${element(var.subnet_ids, count.index)}"
     key_name                    = "${var.key_name}"
@@ -78,6 +73,7 @@ resource "aws_volume_attachment" "hh_attachment" {
 resource "aws_instance" "meta_node" {
     ami                         = "${var.ami}"
     instance_type               = "t2.medium"
+    iam_instance_profile        = "${var.node_iam_role}"
     tags                        = "${merge(var.tags, map("Name", "${var.name}-meta${format("%02d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_meta"), map("Type", "data"))}"
     subnet_id                   = "${element(var.subnet_ids,0)}"
     key_name                    = "${var.key_name}"
