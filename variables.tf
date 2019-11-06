@@ -78,7 +78,14 @@ variable "data_disk_device_name" {
     description = "The name of the device to attach to the data-nodes"
     default  = "/dev/xvdh"
 }
-
+variable "wal_disk_device_name" {
+    description = "The name of the device to attach to the meta-nodes"
+    default  = "/dev/sdc"
+}
+variable "hh_disk_device_name" {
+    description = "The name of the device to attach to the meta-nodes"
+    default  = "/dev/sdd"
+}
 variable "meta_disk_device_name" {
     description = "The name of the device to attach to the meta-nodes"
     default  = "/dev/xvdh"

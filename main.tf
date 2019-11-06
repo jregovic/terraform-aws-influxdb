@@ -128,7 +128,7 @@ resource "aws_security_group_rule" "cluster_comms" {
   from_port         = 8088
   to_port           = 8091
   protocol          = "tcp"
-  cidr_blocks       = ["${formatlist("%s/32", concat(aws_instance.meta_node.*.private_ip, aws_instance.data_node.*.private_ip))}"]
+  cidr_blocks       = "${formatlist("%s/32", concat(aws_instance.meta_node.*.private_ip, aws_instance.data_node.*.private_ip))}"
   security_group_id = "${aws_security_group.influx_cluster.id}"
 }
 
