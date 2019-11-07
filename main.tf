@@ -9,7 +9,7 @@ resource "aws_instance" "data_node" {
     ami                         = "${var.ami}"
     instance_type               = "${var.instance_type}"
     iam_instance_profile        = "${var.node_iam_role}"
-    tags                        = "${merge(var.tags, map("Name", "${var.name}-data${format("%02d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_data"), map("Type", "data"))}"
+    tags                        = "${merge(var.tags, map("Name", "${var.name}-data${format("%03d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_data"), map("Type", "data"))}"
     subnet_id                   = "${element(var.subnet_ids, count.index)}"
     key_name                    = "${var.key_name}"
     user_data                   = "${var.user_data == "" ? file("${path.module}/files/init.sh") : var.user_data }"
@@ -73,7 +73,7 @@ resource "aws_instance" "meta_node" {
     ami                         = "${var.ami}"
     instance_type               = "t2.medium"
     iam_instance_profile        = "${var.node_iam_role}"
-    tags                        = "${merge(var.tags, map("Name", "${var.name}-meta${format("%02d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_meta"), map("Type", "data"))}"
+    tags                        = "${merge(var.tags, map("Name", "${var.name}-meta${format("%03d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_meta"), map("Type", "data"))}"
     subnet_id                   = "${element(var.subnet_ids,0)}"
     key_name                    = "${var.key_name}"
     user_data                   = "${var.user_data == "" ? file("${path.module}/files/init.sh") : var.user_data }"
@@ -100,7 +100,7 @@ resource "aws_volume_attachment" "meta" {
 
 resource "aws_route53_record" "meta_node" {
     zone_id = "${var.zone_id}"
-    name    = "${var.name}-meta${format("%02d", count.index + 1)}"
+    name    = "${var.name}-meta${format("%03d", count.index + 1)}"
     type    = "A"
     ttl     = "120"
     records = ["${element(aws_instance.meta_node.*.private_ip, count.index)}"]
@@ -109,7 +109,7 @@ resource "aws_route53_record" "meta_node" {
 
 resource "aws_route53_record" "data_node" {
     zone_id = "${var.zone_id}"
-    name    = "${var.name}-data${format("%02d", count.index + 1)}"
+    name    = "${var.name}-data${format("%03d", count.index + 1)}"
     type    = "A"
     ttl     = "120"
     records = ["${element(aws_instance.data_node.*.private_ip, count.index)}"]
