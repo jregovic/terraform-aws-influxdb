@@ -73,7 +73,7 @@ resource "aws_instance" "meta_node" {
     ami                         = "${var.ami}"
     instance_type               = "t2.medium"
     iam_instance_profile        = "${var.node_iam_role}"
-    tags                        = "${merge(var.tags, map("Name", "${var.name}-meta${format("%03d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_meta"), map("Type", "data"))}"
+    tags                        = "${merge(var.tags, map("Name", "${var.name}-meta${format("%03d", count.index + 1)}"), map("Role", "${replace(var.name, "-", "_")}_meta"), map("Type", "meta"))}"
     subnet_id                   = "${element(var.subnet_ids,0)}"
     key_name                    = "${var.key_name}"
     user_data                   = "${var.user_data == "" ? file("${path.module}/files/init.sh") : var.user_data }"
