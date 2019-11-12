@@ -156,7 +156,7 @@ resource "aws_security_group" "data_node" {
     }
 }
 
-resource "aws_lb" "cluster_lb" {
+resource "aws_alb" "cluster_lb" {
   name               = "${var.name}-alb"
   internal           = false
   load_balancer_type = "application"
@@ -172,7 +172,7 @@ resource "aws_lb" "cluster_lb" {
 
 }
 
-resource "aws_lb_target_group" "cluster_tg" {
+resource "aws_alb_target_group" "cluster_tg" {
   name     = "${var.name}-lb-tg"
   port     = 8086
   protocol = "HTTP"
