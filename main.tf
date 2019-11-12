@@ -156,3 +156,46 @@ resource "aws_security_group" "data_node" {
     }
 }
 
+resource "aws_lb" "cluster_lb" {
+  name               = "${var.name}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = ["${aws_security_group.data_node.id}"]
+  subnets            = "${var.subnet_ids}"
+
+  enable_deletion_protection = true
+
+
+  tags = {
+    Environment = "production"
+  }
+
+}
+
+resource "aws_lb_target_group" "cluster_tg" {
+  name     = "${var.name}-lb-tg"
+  port     = 8086
+  protocol = "HTTP"
+  vpc_id   = "${var.vpc_id}"
+  target_type = "instance"
+  health_check {
+    path = "/ping"
+    port = 204
+    healthy_threshold = 6
+    unhealthy_threshold = 3
+    timeout = 2
+    interval = 5
+    matcher = "204"  # has to be HTTP 200 or fails
+  }
+}
+resource "aws_alb_listener" "cluster_lb_listener" {
+  default_action {
+    target_group_arn = "${aws_alb_target_group.cluster_tg.arn}"
+    type = "forward"
+  }
+  load_balancer_arn = "${aws_alb.cluster_lb.arn}"
+  port = 8086
+  protocol = "HTTP"
+}
+
+
