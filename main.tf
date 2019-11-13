@@ -199,9 +199,10 @@ resource "aws_alb_listener" "cluster_lb_listener" {
 }
 
 resource "aws_alb_target_group_attachment" "cluster_at" {
+  for_each = {
+      for i in list("${aws_instance.data_node.*}") : "${i.id}" => i
+  }
   target_group_arn = "${aws_alb_target_group.cluster_tg.arn}"
   target_id        = "${aws_instance.data_node.*.id}"
   port             = 8086
 }
-
-
