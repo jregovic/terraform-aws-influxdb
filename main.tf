@@ -198,8 +198,8 @@ resource "aws_alb_listener" "cluster_lb_listener" {
   protocol = "HTTP"
 }
 
-resource "aws_lb_target_group_attachment" "cluster_at" {
-  target_group_arn = "${aws_lb_target_group.cluster_tg.arn}"
+resource "aws_alb_target_group_attachment" "cluster_at" {
+  target_group_arn = "${aws_alb_target_group.cluster_tg.arn}"
   target_id        = "${aws_instance.data_node.*.id}"
   port             = 8086
 }
