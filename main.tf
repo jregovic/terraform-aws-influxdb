@@ -155,21 +155,35 @@ resource "aws_security_group" "data_node" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 }
+resource "aws_security_group" "cluster_lb_sg" {
+    description = "Security group for influx data node ingress"
+    vpc_id      = "${var.vpc_id}"
+    tags        = "${merge(var.tags, map("Name", "${var.name}"), map("Role", "influx"))}"
+
+    ingress {
+        from_port   = "8086"
+        to_port     = "8086"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    egress {
+        from_port   = "8086"
+        to_port     = "8086"
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
 
 resource "aws_alb" "cluster_lb" {
   name               = "${var.name}-alb"
-  internal           = false
+  internal           = true
   load_balancer_type = "application"
-  security_groups    = ["${aws_security_group.data_node.id}"]
+  security_groups    = ["${aws_security_group.cluster_lb_sg.id}"]
   subnets            = "${var.subnet_ids}"
 
   enable_deletion_protection = true
 
-
-  tags = {
-    Environment = "production"
-  }
-
+  tags        = "${merge(var.tags, map("Name", "${var.name}"), map("Role", "influx"))}"
 }
 
 resource "aws_alb_target_group" "cluster_tg" {
@@ -180,7 +194,7 @@ resource "aws_alb_target_group" "cluster_tg" {
   target_type = "instance"
   health_check {
     path = "/ping"
-    port = 204
+    port = 8086
     healthy_threshold = 6
     unhealthy_threshold = 3
     timeout = 2
@@ -199,10 +213,16 @@ resource "aws_alb_listener" "cluster_lb_listener" {
 }
 
 resource "aws_alb_target_group_attachment" "cluster_at" {
-  for_each = {
-      for i in list("${aws_instance.data_node.*}") : "${i.id}" => i
-  }
+  for_each = toset("${aws_instance.data_node.*.id}")
   target_group_arn = "${aws_alb_target_group.cluster_tg.arn}"
-  target_id        = "${aws_instance.data_node.*.id}"
+  target_id        = "${each.value}"
   port             = 8086
+}
+resource "aws_route53_record" "cluster_lb_cname" {
+    zone_id = "${var.zone_id}"
+    name    = "${var.name}"
+    type    = "CNAME"
+    ttl     = "120"
+    records = ["${aws_alb.cluster_lb.dns_name}"]
+    count   = "${var.meta_instances}"
 }
