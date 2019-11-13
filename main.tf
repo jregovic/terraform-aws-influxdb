@@ -201,6 +201,7 @@ resource "aws_alb_target_group" "cluster_tg" {
     interval = 5
     matcher = "204"  # has to be HTTP 200 or fails
   }
+  tags        = "${merge(var.tags, map("Name", "${var.name}"), map("Role", "influx"))}"
 }
 resource "aws_alb_listener" "cluster_lb_listener" {
   default_action {
@@ -217,6 +218,9 @@ resource "aws_alb_target_group_attachment" "cluster_at" {
   target_group_arn = "${aws_alb_target_group.cluster_tg.arn}"
   target_id        = "${each.value}"
   port             = 8086
+  depends_on = [
+    aws_instance.data_node,
+  ]
 }
 resource "aws_route53_record" "cluster_lb_cname" {
     zone_id = "${var.zone_id}"
