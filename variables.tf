@@ -94,3 +94,6 @@ variable "node_iam_role" {
     description = "The IAM role for the nodes to use"
     default = ""
 }
+variable "region" {
+    default = "us-west-2"
+}

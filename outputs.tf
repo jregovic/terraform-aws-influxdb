@@ -5,7 +5,7 @@ output "meta_nodes_ids" {
 
 output "data_node_ids" {
   description = "A list of all data node instance ids"
-  value = ["${aws_instance.data_node.*.id}"]
+  value = toset("${aws_instance.data_node.*.id}")
 }
 
 output "data_node_count" {

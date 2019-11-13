@@ -100,7 +100,7 @@ resource "aws_volume_attachment" "meta" {
 
 resource "aws_route53_record" "meta_node" {
     zone_id = "${var.zone_id}"
-    name    = "${var.name}-meta${format("%03d", count.index + 1)}"
+    name    = "${var.name}-meta${format("%03d", count.index + 1)}.${var.region}"
     type    = "A"
     ttl     = "120"
     records = ["${element(aws_instance.meta_node.*.private_ip, count.index)}"]
@@ -109,7 +109,7 @@ resource "aws_route53_record" "meta_node" {
 
 resource "aws_route53_record" "data_node" {
     zone_id = "${var.zone_id}"
-    name    = "${var.name}-data${format("%03d", count.index + 1)}"
+    name    = "${var.name}-data${format("%03d", count.index + 1)}.${var.region}"
     type    = "A"
     ttl     = "120"
     records = ["${element(aws_instance.data_node.*.private_ip, count.index)}"]
@@ -154,79 +154,4 @@ resource "aws_security_group" "data_node" {
         protocol    = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
     }
-}
-resource "aws_security_group" "cluster_lb_sg" {
-    description = "Security group for influx data node ingress"
-    vpc_id      = "${var.vpc_id}"
-    tags        = "${merge(var.tags, map("Name", "${var.name}"), map("Role", "influx"))}"
-
-    ingress {
-        from_port   = "8086"
-        to_port     = "8086"
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-    egress {
-        from_port   = "8086"
-        to_port     = "8086"
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-}
-
-resource "aws_alb" "cluster_lb" {
-  name               = "${var.name}-alb"
-  internal           = true
-  load_balancer_type = "application"
-  security_groups    = ["${aws_security_group.cluster_lb_sg.id}"]
-  subnets            = "${var.subnet_ids}"
-
-  enable_deletion_protection = true
-
-  tags        = "${merge(var.tags, map("Name", "${var.name}"), map("Role", "influx"))}"
-}
-
-resource "aws_alb_target_group" "cluster_tg" {
-  name     = "${var.name}-lb-tg"
-  port     = 8086
-  protocol = "HTTP"
-  vpc_id   = "${var.vpc_id}"
-  target_type = "instance"
-  health_check {
-    path = "/ping"
-    port = 8086
-    healthy_threshold = 6
-    unhealthy_threshold = 3
-    timeout = 2
-    interval = 5
-    matcher = "204"  # has to be HTTP 200 or fails
-  }
-  tags        = "${merge(var.tags, map("Name", "${var.name}"), map("Role", "influx"))}"
-}
-resource "aws_alb_listener" "cluster_lb_listener" {
-  default_action {
-    target_group_arn = "${aws_alb_target_group.cluster_tg.arn}"
-    type = "forward"
-  }
-  load_balancer_arn = "${aws_alb.cluster_lb.arn}"
-  port = 8086
-  protocol = "HTTP"
-}
-
-resource "aws_alb_target_group_attachment" "cluster_at" {
-  for_each = toset("${aws_instance.data_node.*.id}")
-  target_group_arn = "${aws_alb_target_group.cluster_tg.arn}"
-  target_id        = "${each.value}"
-  port             = 8086
-  depends_on = [
-    aws_instance.data_node,
-  ]
-}
-resource "aws_route53_record" "cluster_lb_cname" {
-    zone_id = "${var.zone_id}"
-    name    = "${var.name}"
-    type    = "CNAME"
-    ttl     = "120"
-    records = ["${aws_alb.cluster_lb.dns_name}"]
-    count   = "${var.meta_instances}"
 }
